@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <title>AI Image Generator</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Montserrat&display=swap");
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        height: 100vh;
+        flex-direction: column;
+        font-family: "Montserrat", sans-serif;
+        font-size: 14px;
+      }
+      .container {
+        display: flex;
+        flex: 1;
+      }
+      .right-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .right-panel img {
+        max-width: 900px;
+        max-height: 700px;
+        width: auto;
+        height: auto;
+      }
+
+      .left-panel {
+        flex: 30%;
+        padding: 20px 30px 20px 30px;
+        background-color: #f0f0f0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: fit-content;
+      }
+
+      .prompt-input {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+      .prompt-input1 {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        position: relative;
+        top: -280px;
+      }
+
+      .normal-prompt-input {
+        flex: 1;
+        margin-top: 15px;
+        width: 386px;
+        height: 175px;
+        resize: none;
+        font-family: "Montserrat", sans-serif;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        background: white;
+        border: none;
+        font-weight: bold;
+      }
+
+      .positive-prompt {
+        width: 393px;
+        height: 220px;
+        background-color: #fff;
+        padding: 10px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+      }
+
+      .surprise-button {
+        background-color: rgb(211, 228, 234);
+        padding: 5px 10px;
+        border: none;
+        width: fit-content;
+        height: fit-content;
+        cursor: pointer;
+        font-family: "Montserrat", sans-serif;
+        border-radius: 3px;
+        position: relative;
+        bottom: 220px;
+        left: 285px;
+      }
+
+      .generate-button {
+        margin-top: 10px;
+        background-color: rgb(211, 228, 234);
+        color: black;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        border-radius: 5px;
+        margin-bottom: 100px;
+        font-family: "Montserrat", sans-serif;
+        margin-top: 100px;
+      }
+
+      .right-panel {
+        flex: 70%;
+        padding: 20px;
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .timer {
+        font-size: 17px;
+        text-align: center;
+        margin-top: 50px;
+      }
+
+      .generate-button:active {
+        /* Styles when the button is clicked */
+        background-color: white;
+        color: rgb(211, 228, 234);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="left-panel">
+        <div class="prompt-input">
+          <div class="positive-prompt">
+            <label for="positive-prompt"
+              >Describe your creation in detail:</label
+            >
+            <br />
+            <textarea
+              class="normal-prompt-input"
+              id="normal-prompt"
+              placeholder="A white bird over the moon"
+            ></textarea>
+            <div>
+              <button class="surprise-button" onclick="surpriseMe()">
+                Surprise Me!
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- New prompt input -->
+        <div class="prompt-input">
+          <div class="positive-prompt">
+            <label for="new-prompt">Negative Prompt:</label><br />
+            <textarea
+              class="normal-prompt-input"
+              id="new-prompt"
+              placeholder="Your new prompt here"
+            ></textarea>
+            <button class="surprise-button" onclick="autoPrompt()">
+              Auto Prompt
+            </button>
+          </div>
+        </div>
+        <div id="countdown" class="timer">0:25</div>
+        <button
+          id="startButton"
+          onclick="startCountdown()"
+          class="generate-button"
+        >
+          Generate
+        </button>
+      </div>
+      <div class="right-panel">
+        <img
+          id="generated-image"
+          src=""
+          alt="Generated Image"
+          width="fit-content"
+          height="fit-content"
+        />
+      </div>
+    </div>
+    <script>
+      const apiUrl = "http://api.omniinfer.io/v2/txt2img";
+
+      // const apiKey = "7a154af8-2961-47e3-880f-272f24290053";
+      const apiKey = "b5c1c131-64aa-44b1-a556-2ee451a46174";
+
+      function sendRequest() {
+        const negativePrompt = document.getElementById("new-prompt").value;
+        const prompt = document.getElementById("normal-prompt").value;
+
+        const requestData = {
+          negative_prompt: negativePrompt,
+          sampler_name: "Euler a",
+          denoising_strength: 0.75,
+          batch_size: 1,
+          n_iter: 1,
+          steps: 20,
+          cfg_scale: 6,
+          seed: -1,
+          height: 512,
+          width: 512,
+          model_name: "dreamshaper_332BakedVaeClipFix_6459.safetensors",
+          prompt: prompt,
+          enable_hr: true,
+          hr_upscaler: "R-ESRGAN 4x+",
+          hr_scale: 1,
+          hr_resize_x: 1024,
+          hr_resize_y: 1536,
+        };
+
+        console.log("Request Data:", requestData);
+
+        fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "User-Agent": "Apifox/1.0.0 (https://www.apifox.cn)",
+            "Content-Type": "application/json",
+            "X-Omni-Key": apiKey,
+          },
+          body: JSON.stringify(requestData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("API Response:", data);
+
+            if (data.code === 0 && data.data && data.data.task_id) {
+              const taskId = data.data.task_id;
+              console.log("Received task_id:", taskId);
+
+              retrieveImages(taskId);
+            } else {
+              console.error("API Error:", data.msg);
+            }
+          })
+          .catch((error) => {
+            console.error("Fetch Error:", error);
+          });
+      }
+
+      function retrieveImages(taskId) {
+        const progressUrl = `http://api.omniinfer.io/v2/progress?task_id=${taskId}`;
+
+        fetch(progressUrl, {
+          method: "GET",
+          headers: {
+            "User-Agent": "Apifox/1.0.0 (https://www.apifox.cn)",
+            "X-Omni-Key": apiKey,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Progress API Response:", data);
+
+            if (data.code === 0) {
+              const status = data.data.status;
+              if (status === 2 && data.data.imgs) {
+                const images = data.data.imgs;
+
+                console.log("Retrieved Images:", images);
+
+                if (images.length > 0) {
+                  const generatedImage =
+                    document.getElementById("generated-image");
+                  generatedImage.src = images[0];
+                  generatedImage.alt = "Generated Image";
+                }
+              } else if (status !== 2) {
+                setTimeout(() => {
+                  retrieveImages(taskId);
+                }, 5000);
+              } else {
+                console.error("No images found or API Error:", data.msg);
+              }
+            } else {
+              console.error("API Error:", data.msg);
+            }
+          })
+          .catch((error) => {
+            console.error("Fetch Error:", error);
+          });
+      }
+
+      document
+        .querySelector(".generate-button")
+        .addEventListener("click", sendRequest);
+
+      function autoPrompt() {
+        document.getElementById("new-prompt").value =
+          "worst quality, normal quality, low quality, low res, blurry, text, watermark, logo, banner, extra digits, cropped, jpeg artifacts, signature, username, error, sketch ,duplicate, ugly, monochrome, horror, geometry, mutation, disgusting";
+      }
+
+      function surpriseMe() {
+        const randomTexts = [
+          "A beautiful sunset over the mountains",
+          "A playful kitten chasing a ball of yarn",
+          "A serene beach with crystal-clear waters",
+        ];
+        const randomIndex = Math.floor(Math.random() * randomTexts.length);
+        const randomText = randomTexts[randomIndex];
+        document.getElementById("normal-prompt").value = randomText;
+        document.getElementById("new-prompt").value = "";
+      }
+
+      var countdownTime = 25; // 25 seconds
+      var countdownInterval;
+
+      function updateCountdown() {
+        var countdownElement = document.getElementById("countdown");
+        countdownElement.innerHTML = countdownTime;
+
+        if (countdownTime === 0) {
+          clearInterval(countdownInterval);
+          countdownElement.innerHTML = "Complete!";
+        } else {
+          countdownTime--;
+        }
+      }
+
+      function startCountdown() {
+        countdownInterval = setInterval(updateCountdown, 1000);
+        document.getElementById("startButton").disabled = true; // Disable the start button
+      }
+    </script>
+  </body>
+</html>
